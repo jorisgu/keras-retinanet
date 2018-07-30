@@ -28,6 +28,7 @@ if __name__ == "__main__" and __package__ is None:
     __package__ = "keras_retinanet.bin"
 
 # Change these to absolute imports if you copy this script outside the keras_retinanet package.
+from ..preprocessing.alan import ALANGenerator
 from ..preprocessing.pascal_voc import PascalVocGenerator
 from ..preprocessing.csv_generator import CSVGenerator
 from ..preprocessing.kitti import KittiGenerator
@@ -80,6 +81,12 @@ def create_generator(args):
         generator = CSVGenerator(
             args.annotations,
             args.classes,
+            transform_generator=transform_generator,
+            image_min_side=args.image_min_side,
+            image_max_side=args.image_max_side
+        )
+    elif args.dataset_type == 'alan':
+        generator = ALANGenerator(
             transform_generator=transform_generator,
             image_min_side=args.image_min_side,
             image_max_side=args.image_max_side
@@ -143,6 +150,10 @@ def parse_args(args):
     csv_parser = subparsers.add_parser('csv')
     csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for evaluation.')
     csv_parser.add_argument('classes',     help='Path to a CSV file containing class label mapping.')
+
+    csv_parser = subparsers.add_parser('alan')
+    # csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for evaluation.')
+    # csv_parser.add_argument('classes',     help='Path to a CSV file containing class label mapping.')
 
     parser.add_argument('-l', '--loop', help='Loop forever, even if the dataset is exhausted.', action='store_true')
     parser.add_argument('--no-resize', help='Disable image resizing.', dest='resize', action='store_false')
