@@ -455,7 +455,7 @@ class ALANGenerator(Generator):
         self.classes = {"etiquette":0}
         self.labels = {0:"etiquette"}
 
-        self.data = self.produce_mix()
+        self.data = self.produce_mix(20)
 
         super(ALANGenerator, self).__init__(**kwargs)
 
