@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+from tqdm import tqdm
 from __future__ import print_function
 
 from .anchors import compute_overlap
@@ -71,7 +71,7 @@ def _get_detections(generator, model, score_threshold=0.05, max_detections=100, 
     """
     all_detections = [[None for i in range(generator.num_classes())] for j in range(generator.size())]
 
-    for i in range(generator.size()):
+    for i in tqdm(range(generator.size())):
         raw_image    = generator.load_image(i)
         image        = generator.preprocess_image(raw_image.copy())
         image, scale = generator.resize_image(image)

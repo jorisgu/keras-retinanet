@@ -484,6 +484,7 @@ def main(args=None):
     nb_steps = (train_generator.size()//args.batch_size)
     print("STEPS_PER_EPOCH", nb_steps)
     print("NUM WORKERS",workers)
+    print("SNAPSHOT PATH",args.snapshot_path)
     # start training
 
 
