@@ -417,7 +417,7 @@ class ALANGenerator(Generator):
     def __init__(self,**kwargs):
 
         ppm_folder = "/dds/work/workspace/alan_ppm_files/"
-        gt_folder = "/dds/work/workspace/alan_vt_files/"
+        gt_folder = "/dds/work/workspace/alan_gt_files/"
 
         saving_folder = "/dds/work/workspace/alan_tmp_files/"
 
