@@ -416,7 +416,7 @@ class ALANGenerator(Generator):
     """ Generate data for a ALAN dataset.
     """
 
-    def __init__(self,split="train",**kwargs):
+    def __init__(self,split="train",force_new_dataset = False,**kwargs):
 
         ppm_folder = "/dds/work/workspace/alan_ppm_files/"
         gt_folder = "/dds/work/workspace/alan_gt_files/"
@@ -435,7 +435,6 @@ class ALANGenerator(Generator):
         seed_train = 21
         overlap = 0.5
 
-        force_new_dataset = False
         save_mask = False
         filter = True
         full_image = False
