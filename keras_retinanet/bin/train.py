@@ -24,6 +24,7 @@ import warnings
 import keras
 import keras.preprocessing.image
 import tensorflow as tf
+import multiprocessing
 
 # Allow relative imports when being executed as script.
 if __name__ == "__main__" and __package__ is None:
@@ -481,12 +482,18 @@ def main(args=None):
     nb_steps = train_generator.size()//args.batch_size
     print("STEPS_PER_EPOCH", nb_steps)
     # start training
+
+    workers = multiprocessing.cpu_count()//2
+
     training_model.fit_generator(
         generator=train_generator,
         steps_per_epoch=nb_steps,
         epochs=args.epochs,
         verbose=1,
         callbacks=callbacks,
+        max_queue_size=100,
+        workers=workers,
+        use_multiprocessing=True,
     )
 
 
