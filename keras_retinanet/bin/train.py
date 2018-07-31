@@ -478,12 +478,12 @@ def main(args=None):
     )
 
 
-    # if
-    nb_steps = train_generator.size()//args.batch_size
+    workers = multiprocessing.cpu_count()//2
+    nb_steps = (train_generator.size()//args.batch_size)
     print("STEPS_PER_EPOCH", nb_steps)
     # start training
 
-    workers = multiprocessing.cpu_count()//2
+
 
     training_model.fit_generator(
         generator=train_generator,
@@ -493,7 +493,7 @@ def main(args=None):
         callbacks=callbacks,
         max_queue_size=100,
         workers=workers,
-        use_multiprocessing=True,
+        use_multiprocessing=False,
     )
 
 
