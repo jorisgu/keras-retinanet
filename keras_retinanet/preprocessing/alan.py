@@ -430,7 +430,8 @@ class ALANGenerator(Generator):
         folders = [ ppm_folder ]
 
         self.dim = 1000
-        scales = [0.8, 1, 1.2]
+        # scales = [0.8, 1, 1.2]
+        scales = [1]
         seed_train = 21
         overlap = 0.5
 
@@ -467,7 +468,6 @@ class ALANGenerator(Generator):
 
         super(ALANGenerator, self).__init__(**kwargs)
 
-
     def produce_splits(self,ratio=10):
         all_crops = self.img_infos['crops_with_objs'].copy()
         random.seed(21)
@@ -484,13 +484,10 @@ class ALANGenerator(Generator):
         print("In val [",len(val),"], crops with objs [",len(val_full),"], crops without objs [",len(val_empty),"]")
         return train,val
 
-
-
     def produce_mix(self, ratio=3):
         """ Function to call in order to produce a new mix between list of crop with objs and list of crop without obj"""
         print("Producing a mix dataset of crops with objs [",len(self.img_infos['crops_with_objs']),"] and empty crops [",len(self.img_infos['crops_with_objs'])//ratio,"]")
         return self.img_infos['crops_with_objs'] + random.sample(self.img_infos['crops_without_objs'],len(self.img_infos['crops_with_objs'])//ratio)
-
 
     def size(self):
         """ Size of the dataset.
@@ -527,6 +524,7 @@ class ALANGenerator(Generator):
             return np.array(pil_resize(load_crop(xywh,img_path),self.dim))
         except:
             print("Error in sample_index", img_path, img_id, scale, xywh, has_vt)
+
             raise
 
     def load_annotations(self, sample_index):
