@@ -226,13 +226,15 @@ class mask:
         objs = []
         for id_obj,obj in enumerate(self.objs):
             if len(obj['equipment'])>0:
-                classe = 1 #'equipment'
-            elif len(obj['extra_equipment'])>0:
-                classe = 1 #'extra_equipment'
-            elif len(obj['hard_background'])>0:
-                classe = 2
-            else:
                 classe = 0
+            elif len(obj['extra_equipment'])>0:
+                classe = 0
+            else:
+                continue
+            # elif len(obj['hard_background'])>0:
+            #     classe =
+            # else:
+            #     classe = 0
                 # continue
 
             (x1,y1,x2,y2) = self.convert_polygon_to_rectangle(
@@ -414,7 +416,7 @@ class ALANGenerator(Generator):
     """ Generate data for a ALAN dataset.
     """
 
-    def __init__(self,**kwargs):
+    def __init__(self,split="train",**kwargs):
 
         ppm_folder = "/dds/work/workspace/alan_ppm_files/"
         gt_folder = "/dds/work/workspace/alan_gt_files/"
@@ -432,7 +434,7 @@ class ALANGenerator(Generator):
         seed_train = 21
         overlap = 0.5
 
-        force_new_dataset = True
+        force_new_dataset = False
         save_mask = False
         filter = True
         full_image = False
