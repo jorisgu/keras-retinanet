@@ -1,3 +1,4 @@
+# git pull; CUDA_VISIBLE_DEVICES=1 python keras_retinanet/bin/train.py --freeze-backbone --batch-size=1 --num-workers=12 --random-transform alan
 from .generator import Generator
 import os
 from os import path as osp

@@ -141,7 +141,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     callbacks = []
 
     tensorboard_callback = None
-
+    # tensorboard_callback
     if args.tensorboard_dir:
         tensorboard_callback = keras.callbacks.TensorBoard(
             log_dir                = args.tensorboard_dir,
@@ -156,6 +156,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         )
         callbacks.append(tensorboard_callback)
 
+    # validation callback
     if args.evaluation and validation_generator:
         if args.dataset_type == 'coco':
             from ..callbacks.coco import CocoEval
