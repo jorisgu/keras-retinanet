@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+# git pull; CUDA_VISIBLE_DEVICES=1 python keras_retinanet/bin/evaluate.py model=/dds/work/workspace/alan_tmp_files/resnet50_alan_01_31juillet_19h08_inference.h5 --iou-threshold=0.01  alan
 import argparse
 import os
 import sys
@@ -31,6 +31,7 @@ if __name__ == "__main__" and __package__ is None:
 from .. import models
 from ..preprocessing.csv_generator import CSVGenerator
 from ..preprocessing.pascal_voc import PascalVocGenerator
+from ..preprocessing.alan import ALANGenerator
 from ..utils.eval import evaluate
 from ..utils.keras_version import check_keras_version
 
@@ -55,6 +56,12 @@ def create_generator(args):
             'val2017',
             image_min_side=args.image_min_side,
             image_max_side=args.image_max_side
+        )
+    elif args.dataset_type == 'alan':
+        validation_generator = ALANGenerator(
+            split="val",
+            # transform_generator=transform_generator,
+            **common_args
         )
     elif args.dataset_type == 'pascal':
         validation_generator = PascalVocGenerator(
@@ -89,6 +96,8 @@ def parse_args(args):
     pascal_parser = subparsers.add_parser('pascal')
     pascal_parser.add_argument('pascal_path', help='Path to dataset directory (ie. /tmp/VOCdevkit).')
 
+    alan_parser = subparsers.add_parser('alan')
+
     csv_parser = subparsers.add_parser('csv')
     csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for evaluation.')
     csv_parser.add_argument('classes', help='Path to a CSV file containing class label mapping.')
@@ -105,6 +114,7 @@ def parse_args(args):
     parser.add_argument('--image-max-side',  help='Rescale the image if the largest side is larger than max_side.', type=int, default=1333)
 
     return parser.parse_args(args)
+
 
 
 def main(args=None):
