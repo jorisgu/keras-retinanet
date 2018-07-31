@@ -455,14 +455,42 @@ class ALANGenerator(Generator):
         self.classes = {"etiquette":0}
         self.labels = {0:"etiquette"}
 
-        self.data = self.produce_mix(20)
+        train,val = self.produce_splits()
+        if split=="train":
+            self.data = train
+        elif split=="val":
+            self.data = val
+        else:
+            print("Error, no split selected [train or val]")
+            raise
+        print("Datasplit:",split,len(self.data))
 
         super(ALANGenerator, self).__init__(**kwargs)
+
+
+    def produce_splits(self,ratio=10):
+        all_crops = self.img_infos['crops_with_objs'].copy()
+        random.seed(21)
+        random.shuffle(all_crops)
+        train_full = all_crops[:2*len(all_crops)//3]
+        train_empty = random.sample(self.img_infos['crops_without_objs'],len(train_full)//ratio)
+        train = train_full + train_empty
+        random.shuffle(train)
+        print("In train [",len(train),"], crops with objs [",len(train_full),"], crops without objs [",len(train_empty),"]")
+        val_full = all_crops[2*len(all_crops)//3:]
+        val_empty = random.sample(self.img_infos['crops_without_objs'],len(val_full)//ratio)
+        val = val_full + val_empty
+        random.shuffle(val)
+        print("In val [",len(val),"], crops with objs [",len(val_full),"], crops without objs [",len(val_empty),"]")
+        return train,val
+
+
 
     def produce_mix(self, ratio=3):
         """ Function to call in order to produce a new mix between list of crop with objs and list of crop without obj"""
         print("Producing a mix dataset of crops with objs [",len(self.img_infos['crops_with_objs']),"] and empty crops [",len(self.img_infos['crops_with_objs'])//ratio,"]")
         return self.img_infos['crops_with_objs'] + random.sample(self.img_infos['crops_without_objs'],len(self.img_infos['crops_with_objs'])//ratio)
+
 
     def size(self):
         """ Size of the dataset.

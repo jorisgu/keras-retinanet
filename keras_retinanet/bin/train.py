@@ -259,12 +259,14 @@ def create_generators(args, preprocess_image):
         )
     elif args.dataset_type == 'alan':
         train_generator = ALANGenerator(
+            split="train",
             transform_generator=transform_generator,
             image_min_side=args.image_min_side,
             image_max_side=args.image_max_side
         )
 
         validation_generator = ALANGenerator(
+            split="val",
             transform_generator=transform_generator,
             image_min_side=args.image_min_side,
             image_max_side=args.image_max_side
