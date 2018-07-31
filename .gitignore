@@ -4,3 +4,7 @@ __pycache__/
 *.so
 /.pytest_cache
 /.cache
+build
+.eggs
+examples/.i*
+logs

@@ -151,7 +151,7 @@ def parse_args(args):
     csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for evaluation.')
     csv_parser.add_argument('classes',     help='Path to a CSV file containing class label mapping.')
 
-    csv_parser = subparsers.add_parser('alan')
+    alan_parser = subparsers.add_parser('alan')
     # csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for evaluation.')
     # csv_parser.add_argument('classes',     help='Path to a CSV file containing class label mapping.')
 

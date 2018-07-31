@@ -39,6 +39,7 @@ from ..callbacks import RedirectModel
 from ..callbacks.eval import Evaluate
 from ..models.retinanet import retinanet_bbox
 from ..preprocessing.csv_generator import CSVGenerator
+from ..preprocessing.alan import ALANGenerator
 from ..preprocessing.kitti import KittiGenerator
 from ..preprocessing.open_images import OpenImagesGenerator
 from ..preprocessing.pascal_voc import PascalVocGenerator
@@ -256,6 +257,18 @@ def create_generators(args, preprocess_image):
             'test',
             **common_args
         )
+    elif args.dataset_type == 'alan':
+        train_generator = ALANGenerator(
+            transform_generator=transform_generator,
+            image_min_side=args.image_min_side,
+            image_max_side=args.image_max_side
+        )
+
+        validation_generator = ALANGenerator(
+            transform_generator=transform_generator,
+            image_min_side=args.image_min_side,
+            image_max_side=args.image_max_side
+        )
     elif args.dataset_type == 'csv':
         train_generator = CSVGenerator(
             args.annotations,
@@ -373,6 +386,9 @@ def parse_args(args):
     csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for training.')
     csv_parser.add_argument('classes', help='Path to a CSV file containing class label mapping.')
     csv_parser.add_argument('--val-annotations', help='Path to CSV file containing annotations for validation (optional).')
+
+    alan_parser = subparsers.add_parser('alan')
+    # alan_parser.add_argument('classes', help='Path to a CSV file containing class label mapping.')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--snapshot',          help='Resume training from a snapshot.')
