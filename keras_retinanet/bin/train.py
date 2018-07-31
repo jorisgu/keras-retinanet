@@ -262,16 +262,12 @@ def create_generators(args, preprocess_image):
         train_generator = ALANGenerator(
             split="train",
             transform_generator=transform_generator,
-            image_min_side=args.image_min_side,
-            image_max_side=args.image_max_side,
             **common_args
         )
 
         validation_generator = ALANGenerator(
             split="val",
             transform_generator=transform_generator,
-            image_min_side=args.image_min_side,
-            image_max_side=args.image_max_side,
             **common_args
         )
         # validation_generator = None
