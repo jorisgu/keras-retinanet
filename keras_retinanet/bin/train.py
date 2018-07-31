@@ -265,12 +265,12 @@ def create_generators(args, preprocess_image):
             **common_args
         )
 
-        validation_generator = ALANGenerator(
-            split="val",
-            transform_generator=transform_generator,
-            **common_args
-        )
-        # validation_generator = None
+        # validation_generator = ALANGenerator(
+        #     split="val",
+        #     transform_generator=transform_generator,
+        #     **common_args
+        # )
+        validation_generator = None
     elif args.dataset_type == 'csv':
         train_generator = CSVGenerator(
             args.annotations,

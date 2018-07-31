@@ -418,7 +418,7 @@ class ALANGenerator(Generator):
 
     def __init__(self,split="train",force_new_dataset = False,**kwargs):
 
-        self.batch_size = int(batch_size)
+        # self.batch_size = int(batch_size)
 
         ppm_folder = "/dds/work/workspace/alan_ppm_files/"
         gt_folder = "/dds/work/workspace/alan_gt_files/"
