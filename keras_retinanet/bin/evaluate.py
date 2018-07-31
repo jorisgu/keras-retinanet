@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-# git pull; CUDA_VISIBLE_DEVICES=1 python keras_retinanet/bin/evaluate.py model=/dds/work/workspace/alan_tmp_files/resnet50_alan_01_31juillet_19h08_inference.h5 --iou-threshold=0.01  alan
+# git pull; CUDA_VISIBLE_DEVICES=1 python keras_retinanet/bin/evaluate.py --iou-threshold=0.01  alan model=/dds/work/workspace/alan_tmp_files/resnet50_alan_01_31juillet_19h08_inference.h5
 import argparse
 import os
 import sys
@@ -60,8 +60,6 @@ def create_generator(args):
     elif args.dataset_type == 'alan':
         validation_generator = ALANGenerator(
             split="val",
-            # transform_generator=transform_generator,
-            **common_args
         )
     elif args.dataset_type == 'pascal':
         validation_generator = PascalVocGenerator(
