@@ -434,7 +434,7 @@ class ALANGenerator(Generator):
         self.dim = 1000
         # scales = [0.8, 1, 1.2]
         scales = [1]
-        seed_train = 21
+        # seed_train = 21
         overlap = 0.5
 
         save_mask = False
@@ -471,7 +471,7 @@ class ALANGenerator(Generator):
 
     def produce_splits(self,ratio=10):
         all_crops = self.img_infos['crops_with_objs'].copy()
-        random.seed(21)
+        # random.seed(21)
         random.shuffle(all_crops)
         train_full = all_crops[:2*len(all_crops)//3]
         train_empty = random.sample(self.img_infos['crops_without_objs'],len(train_full)//ratio)
