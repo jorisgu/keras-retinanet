@@ -476,10 +476,14 @@ def main(args=None):
         args,
     )
 
+
+    # if
+    nb_steps = train_generator.size()//args.batch_size
+    print("STEPS_PER_EPOCH", nb_steps)
     # start training
     training_model.fit_generator(
         generator=train_generator,
-        steps_per_epoch=args.steps,
+        steps_per_epoch=nb_steps,
         epochs=args.epochs,
         verbose=1,
         callbacks=callbacks,
