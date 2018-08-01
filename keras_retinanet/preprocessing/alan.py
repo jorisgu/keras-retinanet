@@ -1,5 +1,6 @@
 # git pull; CUDA_VISIBLE_DEVICES=1 python keras_retinanet/bin/train.py --freeze-backbone --no-evaluation --batch-size=1 --num-workers=12 --random-transform alan
 from .generator import Generator
+from keras.utils import Sequence, OrderedEnqueuer
 import os
 from os import path as osp
 from PIL import Image, ImageDraw
@@ -13,6 +14,7 @@ from math import ceil, floor
 import csv
 import ntpath
 import random
+import time
 
 
 def change_tile(tile, new_width, new_height, memory_offset):
@@ -293,9 +295,10 @@ def make_img_infos(saving_folder = "",
                     force_new_dataset = False,
                     filter = True,
                     full_image = False,
-                    prediction_paths=[]):
+                    prediction_paths=[],
+                    fileExtensions = ['ppm']):
 
-    slug_file_name = slugify(str(folders)+'_'+str(groundtruth_paths)+'_'+str(overlap)+'_'+str(dim)+'_'+str(scales)+'_'+str(filter)+'_'+str(full_image)+'_'+str(prediction_paths))+".p"
+    slug_file_name = slugify(str(folders)+'_'+str(groundtruth_paths)+'_'+str(overlap)+'_'+str(dim)+'_'+str(scales)+'_'+str(filter)+'_'+str(full_image)+'_'+str(prediction_paths)+'_'+str(fileExtensions))+".p"
 
     saving_path = osp.join(saving_folder,slug_file_name) #'dataset_dict.p')
     mkdir_p(saving_folder)
@@ -319,7 +322,7 @@ def make_img_infos(saving_folder = "",
 
         # 1 scan folders for images
         # fileExtensions = ['jpg','jpeg','JPG','JPEG']
-        fileExtensions = ['ppm']
+
         listOfFiles = []
         for folder in folders:
             for extension in fileExtensions:
@@ -577,3 +580,77 @@ class ALANGenerator(Generator):
             boxes[idx, 3] = (1./scale)*float(obj_intersection[3])
             boxes[idx, 4] = classe
         return boxes
+
+class TestSequence(Sequence):
+    """  A sequence to test a UNIQUE image    """
+
+    def __init__(self, image_path = "", folder_crops = "",**kwargs):
+
+        assert len(image_path)>0
+        assert len(folder_crops)>0
+
+
+        self.image_path = image_path
+        self.filename = ntpath.basename(image_path).split('.')[0]
+        self.folder_crops = folder_crops
+        self.all_crops = self.scan(folder_crop) # list(xywh)
+        self.crops = self.compute_crops() #using self.image_path & self.all_crops and ImageMagick
+        self.results = [None for _ in self.crops]
+
+
+    def path_crop(self, xywh, duplicate=False):
+        # 1) get filename from file_path
+        # 2) concat folder_crops/filename_xywh.jpg
+
+        if duplicate:
+            path = os.path.join(self.folder_crops, self.filename+"_"+slugify(str(xywh))+"_"+str(time.time())+".jpg")
+        else:
+            path = os.path.join(self.folder_crops, self.filename+"_"+slugify(str(xywh))+".jpg")
+        return path
+
+    def compute_crops(self, xywh=None, duplicate=False):
+        if xywh is not None:
+            # TODO: produce crop with ImageMagick and a different path to avoid hurts
+            path = path_crop(xywh, duplicate=duplicate)
+            os.system("convert '"+self.image_path+"' -crop "+xywh[2]+"x"+xywh[3]+"+"+xywh[1]+"+"+xywh[0]+" '"+path+"'")
+            #x_sizexy_size+x_offset+y_offset
+            #xywh (ligne colonne w h) xywh[2]
+            return path
+        else:
+            # TODO: produce alls crops with path_crop path
+            os.system("convert '"+self.image_path+"' -crop "+xywh[2]+"x"+xywh[3]+"+"+xywh[1]+"+"+xywh[0]+" '"+path+"'")
+
+            command = "convert '"+self.image_path+" '
+            for xywh in self.all_crops:
+                path = path_crop(xywh)
+                command+="\( -clone 0 -crop "+xywh[2]+"x"+xywh[3]+"+"+xywh[1]+"+"+xywh[0]+" +write '"+path+"' +delete \)"
+            command+=" null:"
+            print("Command:")
+            print(command)
+            os.system(command)
+            #
+            # convert /dds/work/workspace/alan_jpg_files/SAL1/Niveau\ 6/PANO_SAL1_BR_6201.jpg \
+            # \( -clone 0 -crop 1000x1000+0+0 +write /dds/work/workspace/alan_tmp_files/output_crops/crop0.jpg +delete \)
+            #  \( -clone 0 -crop 1000x1000+500+500 +write /dds/work/workspace/alan_tmp_files/output_crops/crop1.jpg +delete \)
+            #  \( -clone 0 -crop 1000x1000+1000+1000 +write /dds/work/workspace/alan_tmp_files/output_crops/crop2.jpg +delete \)
+            #  null:
+
+
+    def __len__(self):
+        return len(self.crops)
+
+    def __getitem__(self, id):
+        """ Load an image at the sample_index.
+        """
+        path = self.path_crop(self.crops[id])
+
+        if not os.path.isfile(path):
+            path = self.compute_crops(xywh, duplicate=True)
+
+        crop = Image.open(path)
+        # TODO: check BGR or RGB format
+        return np.array(crop)
+        return np.array(pil_resize(load_crop(xywh,img_path),self.dim))
+        except:
+            print("Error in sample_index", img_path, img_id, scale, xywh, has_vt)
+            raise
