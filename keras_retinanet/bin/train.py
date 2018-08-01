@@ -217,17 +217,29 @@ def create_generators(args, preprocess_image):
 
     # create random transform generator for augmenting training data
     if args.random_transform:
+        # transform_generator = random_transform_generator(
+        #     min_rotation=-0.1,
+        #     max_rotation=0.1,
+        #     min_translation=(-0.1, -0.1),
+        #     max_translation=(0.1, 0.1),
+        #     min_shear=-0.1,
+        #     max_shear=0.1,
+        #     min_scaling=(0.9, 0.9),
+        #     max_scaling=(1.1, 1.1),
+        #     flip_x_chance=0.5,
+        #     flip_y_chance=0.5,
+        # )
         transform_generator = random_transform_generator(
-            min_rotation=-0.1,
-            max_rotation=0.1,
-            min_translation=(-0.1, -0.1),
-            max_translation=(0.1, 0.1),
-            min_shear=-0.1,
-            max_shear=0.1,
-            min_scaling=(0.9, 0.9),
-            max_scaling=(1.1, 1.1),
+            min_rotation=-0.3,
+            max_rotation=0.3,
+            # min_translation=(-0.2, -0.1),
+            # max_translation=(0.1, 0.1),
+            min_shear=-0.2,
+            max_shear=0.2,
+            min_scaling=(0.8, 0.8),
+            max_scaling=(1.2, 1.2),
             flip_x_chance=0.5,
-            flip_y_chance=0.5,
+            # flip_y_chance=0.5,
         )
     else:
         transform_generator = random_transform_generator(flip_x_chance=0.5)
@@ -263,17 +275,21 @@ def create_generators(args, preprocess_image):
         )
     elif args.dataset_type == 'alan':
         train_generator = ALANGenerator(
-            split="train",
+            split="all",
+            source="cat1dam3",
+            overlap=0.2,
             transform_generator=transform_generator,
             **common_args
         )
 
-        # validation_generator = ALANGenerator(
-        #     split="val",
-        #     transform_generator=transform_generator,
-        #     **common_args
-        # )
-        validation_generator = None
+        validation_generator = ALANGenerator(
+            split="all",
+            source="sal1"
+            overlap=0.05,
+            # transform_generator=transform_generator,
+            **common_args
+        )
+        # validation_generator = None
     elif args.dataset_type == 'csv':
         train_generator = CSVGenerator(
             args.annotations,

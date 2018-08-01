@@ -272,6 +272,18 @@ def mkdir_p(path):
         else:
             raise
 
+def slugify(value):
+    """
+    Normalizes string, converts to lowercase, removes non-alpha characters,
+    and converts spaces to hyphens.
+    """
+    import unicodedata
+    import re
+    value = unicodedata.normalize('NFKD', value).encode('utf-8', 'ignore')
+    value = str(re.sub('[^\w\s-]', '', value.decode("utf-8") ).strip().lower())
+    value = str(re.sub('[-\s]+', '-', value))
+    return value
+
 def make_img_infos(saving_folder = "",
                     folders = [],
                     groundtruth_paths= [],
@@ -279,12 +291,13 @@ def make_img_infos(saving_folder = "",
                     dim = 1000,
                     scales = [1., 1.25, 0.8, 0.6, 0.4],
                     force_new_dataset = False,
-                    save_mask = False,
                     filter = True,
                     full_image = False,
                     prediction_paths=[]):
 
-    saving_path = osp.join(saving_folder,'dataset_dict.p')
+    slug_file_name = slugify(str(folders)+'_'+str(groundtruth_paths)+'_'+str(overlap)+'_'+str(dim)+'_'+str(scales)+'_'+str(filter)+'_'+str(full_image)+'_'+str(prediction_paths))+".p"
+
+    saving_path = osp.join(saving_folder,slug_file_name) #'dataset_dict.p')
     mkdir_p(saving_folder)
 
     if osp.isfile(saving_path) and not force_new_dataset:
@@ -417,7 +430,7 @@ class ALANGenerator(Generator):
     """ Generate data for a ALAN dataset.
     """
 
-    def __init__(self,split="train",force_new_dataset = False,**kwargs):
+    def __init__(self, split = "train", source = "all", eval=False, overlap = 0.5, force_new_dataset = False,**kwargs):
 
         # self.batch_size = int(batch_size)
 
@@ -426,9 +439,22 @@ class ALANGenerator(Generator):
 
         saving_folder = "/dds/work/workspace/alan_tmp_files/"
 
-        groundtruth_paths = [   gt_folder+ "VT_DAM3BR.csv",
-                                gt_folder+ "VT_CAT1BR.csv",
-                                gt_folder+ "SAL1BR_6021_VT.CSV"]
+
+        if source == "all":
+            groundtruth_paths = [   gt_folder+ "VT_DAM3BR.csv",
+                                    gt_folder+ "VT_CAT1BR.csv",
+                                    gt_folder+ "SAL1BR_6021_VT.CSV"]
+        elif source == "sal1":
+            groundtruth_paths = [   gt_folder+ "SAL1BR_6021_VT.CSV"]
+        elif source == "cat1dam3":
+            groundtruth_paths = [   gt_folder+ "VT_DAM3BR.csv",
+                                    gt_folder+ "VT_CAT1BR.csv",]
+        elif source == "cat1":
+            groundtruth_paths = [   gt_folder+ "VT_CAT1BR.csv",]
+        elif source == "dam3":
+            groundtruth_paths = [   gt_folder+ "VT_DAM3BR.csv",]
+
+
 
         folders = [ ppm_folder ]
 
@@ -436,10 +462,13 @@ class ALANGenerator(Generator):
         # scales = [0.8, 1, 1.2]
         scales = [1]
         # seed_train = 21
-        overlap = 0.5
 
-        save_mask = False
-        filter = True
+
+        if eval:
+            filter=False
+        else:
+            filter = True
+
         full_image = False
         prediction_paths = []
 
@@ -450,7 +479,6 @@ class ALANGenerator(Generator):
                         dim = self.dim,
                         scales = scales,
                         force_new_dataset = force_new_dataset,
-                        save_mask = save_mask,
                         filter = filter,
                         full_image = full_image,
                         prediction_paths=prediction_paths)
@@ -458,38 +486,45 @@ class ALANGenerator(Generator):
         self.classes = {"etiquette":0}
         self.labels = {0:"etiquette"}
 
-        train,val = self.produce_splits()
-        if split=="train":
-            self.data = train
-        elif split=="val":
-            self.data = val
+        if eval:
+            self.data = self.img_infos['crops_all']
+            print("Using all crops for evaluation [",len(self.data),"].")
         else:
-            print("Error, no split selected [train or val]")
-            raise
-        print("Datasplit:",split,len(self.data))
+
+            train,val = self.produce_splits()
+            if split=="train":
+                self.data = train
+            elif split=="val":
+                self.data = val
+            elif split=="full":
+                self.data = train+val
+            else:
+                print("Error, no split selected [train or val or full (=train+val)]")
+                raise
+            print("Using",split,"split [",len(self.data),"]")
 
         super(ALANGenerator, self).__init__(**kwargs)
 
-    def produce_splits(self,ratio=10):
+    def produce_splits(self,ratio_train_val=5, ratio_full_empty=5):
         all_crops = self.img_infos['crops_with_objs'].copy()
         # random.seed(21)
         random.shuffle(all_crops)
-        train_full = all_crops[:2*len(all_crops)//3]
-        train_empty = random.sample(self.img_infos['crops_without_objs'],len(train_full)//ratio)
+        train_full = all_crops[:(ratio_train_val-1)*len(all_crops)//ratio_train_val]
+        train_empty = random.sample(self.img_infos['crops_without_objs'],len(train_full)//ratio_full_empty)
         train = train_full + train_empty
         random.shuffle(train)
         print("In train [",len(train),"], crops with objs [",len(train_full),"], crops without objs [",len(train_empty),"]")
-        val_full = all_crops[2*len(all_crops)//3:]
-        val_empty = random.sample(self.img_infos['crops_without_objs'],len(val_full)//ratio)
+        val_full = all_crops[(ratio_train_val-1)*len(all_crops)//ratio_train_val:]
+        val_empty = random.sample(self.img_infos['crops_without_objs'],len(val_full)//ratio_full_empty)
         val = val_full + val_empty
         random.shuffle(val)
         print("In val [",len(val),"], crops with objs [",len(val_full),"], crops without objs [",len(val_empty),"]")
         return train,val
 
-    def produce_mix(self, ratio=3):
-        """ Function to call in order to produce a new mix between list of crop with objs and list of crop without obj"""
-        print("Producing a mix dataset of crops with objs [",len(self.img_infos['crops_with_objs']),"] and empty crops [",len(self.img_infos['crops_with_objs'])//ratio,"]")
-        return self.img_infos['crops_with_objs'] + random.sample(self.img_infos['crops_without_objs'],len(self.img_infos['crops_with_objs'])//ratio)
+    # def produce_mix(self, ratio=3):
+    #     """ Function to call in order to produce a new mix between list of crop with objs and list of crop without obj"""
+    #     print("Producing a mix dataset of crops with objs [",len(self.img_infos['crops_with_objs']),"] and empty crops [",len(self.img_infos['crops_with_objs'])//ratio,"]")
+    #     return self.img_infos['crops_with_objs'] + random.sample(self.img_infos['crops_without_objs'],len(self.img_infos['crops_with_objs'])//ratio)
 
     def size(self):
         """ Size of the dataset.
