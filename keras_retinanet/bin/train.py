@@ -275,7 +275,7 @@ def create_generators(args, preprocess_image):
         )
     elif args.dataset_type == 'alan':
         train_generator = ALANGenerator(
-            split="all",
+            split="full",
             source="cat1dam3",
             overlap=0.2,
             transform_generator=transform_generator,
@@ -283,7 +283,7 @@ def create_generators(args, preprocess_image):
         )
 
         validation_generator = ALANGenerator(
-            split="all",
+            split="full",
             source="sal1",
             overlap=0.05,
             # transform_generator=transform_generator,
