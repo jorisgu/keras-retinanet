@@ -284,7 +284,7 @@ def create_generators(args, preprocess_image):
 
         validation_generator = ALANGenerator(
             split="all",
-            source="sal1"
+            source="sal1",
             overlap=0.05,
             # transform_generator=transform_generator,
             **common_args
