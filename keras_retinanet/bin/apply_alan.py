@@ -40,7 +40,10 @@ def label_to_name(label):
 
 
 print('Loading model, this may take a second...')
-model_path = "/dds/work/workspace/alan_tmp_files/resnet50_alan_01_01aout_19h15_inference.h5"
+# model_path = "/dds/work/workspace/alan_tmp_files/resnet50_alan_01_01aout_19h15_inference.h5"
+# "/dds/work/workspace/keras-retinanet/snapshots/alan_training_02_1eraout/resnet50_alan_13_inference.h5"
+# "/dds/work/workspace/keras-retinanet/snapshots/alan_training_02_1eraout/resnet50_alan_02_inference.h5"
+"/dds/work/workspace/keras-retinanet/snapshots/alan_training_02_1eraout/resnet50_alan_06_inference.h5"
 model = models.load_model(model_path, backbone_name='resnet50')
 
 
