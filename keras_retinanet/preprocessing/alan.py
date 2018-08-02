@@ -16,6 +16,63 @@ import ntpath
 import random
 import time
 
+# Malisiewicz et al.
+def non_max_suppression_fast_score(boxes, overlapThresh, scores):
+    # if there are no boxes, return an empty list
+    if len(boxes) == 0:
+        return []
+
+    # if the bounding boxes integers, convert them to floats --
+    # this is important since we'll be doing a bunch of divisions
+    if boxes.dtype.kind == "i":
+        boxes = boxes.astype("float")
+
+    # initialize the list of picked indexes
+    pick = []
+
+    # grab the coordinates of the bounding boxes
+    x1 = boxes[:,0]
+    y1 = boxes[:,1]
+    x2 = boxes[:,2]
+    y2 = boxes[:,3]
+
+    # compute the area of the bounding boxes and sort the bounding
+    # boxes by the bottom-right y-coordinate of the bounding box
+    area = (x2 - x1 + 1) * (y2 - y1 + 1)
+    idxs = np.argsort(scores)
+
+    # keep looping while some indexes still remain in the indexes
+    # list
+    while len(idxs) > 0:
+        # grab the last index in the indexes list and add the
+        # index value to the list of picked indexes
+        last = len(idxs) - 1
+        i = idxs[last]
+        pick.append(i)
+
+        # find the largest (x, y) coordinates for the start of
+        # the bounding box and the smallest (x, y) coordinates
+        # for the end of the bounding box
+        xx1 = np.maximum(x1[i], x1[idxs[:last]])
+        yy1 = np.maximum(y1[i], y1[idxs[:last]])
+        xx2 = np.minimum(x2[i], x2[idxs[:last]])
+        yy2 = np.minimum(y2[i], y2[idxs[:last]])
+
+        # compute the width and height of the bounding box
+        w = np.maximum(0, xx2 - xx1 + 1)
+        h = np.maximum(0, yy2 - yy1 + 1)
+
+        # compute the ratio of overlap
+        overlap = (w * h) / area[idxs[:last]]
+
+        # delete all indexes from the index list that have
+        idxs = np.delete(idxs, np.concatenate(([last],
+            np.where(overlap > overlapThresh)[0])))
+
+    # return only the bounding boxes that were picked using the
+    # integer data type
+    return pick #boxes[pick].astype("int")
+
 
 def change_tile(tile, new_width, new_height, memory_offset):
     tup = tile[0]
@@ -589,14 +646,25 @@ class TestSequence(Sequence):
         assert len(image_path)>0
         assert len(folder_crops)>0
 
-
+        self.dim = 1000
         self.image_path = image_path
         self.filename = ntpath.basename(image_path).split('.')[0]
         self.folder_crops = folder_crops
-        self.all_crops = self.scan(folder_crop) # list(xywh)
-        self.crops = self.compute_crops() #using self.image_path & self.all_crops and ImageMagick
-        self.results = [None for _ in self.crops]
+        mkdir_p(self.folder_crops)
 
+        self.crops = self.compute_crops()
+        self.produce_crops()
+        # self.existing_crop_files = self.scan(folder_crops) # list(xywh)
+        self.results = [None for  _ in self.crops]
+
+    def scan(self, folder=None, ext=["jpg"]):
+        if folder is None:
+            folder=self.folder_crops
+        listOfFiles = []
+        for extension in ext:
+            listOfFiles.extend( glob.glob( folder+"/**/*." + extension, recursive=True ))
+        print("Found",len(listOfFiles),"files in",folder+".")
+        return listOfFiles
 
     def path_crop(self, xywh, duplicate=False):
         # 1) get filename from file_path
@@ -608,32 +676,59 @@ class TestSequence(Sequence):
             path = os.path.join(self.folder_crops, self.filename+"_"+slugify(str(xywh))+".jpg")
         return path
 
-    def compute_crops(self, xywh=None, duplicate=False):
+
+    def compute_crops(self):
+        """ Compute the different possibility of xywh based on image size, sample dim and scales"""
+        scales = [1]
+        dim = self.dim
+        overlap = 0.1
+        img_pil = Image.open(self.image_path)
+
+        W = img_pil.size[0]
+        H = img_pil.size[1]
+        spk_img=[]
+        for scale in scales:
+            spk_img.append((scale,(make_spk(W, dim, overlap, scale),make_spk(H, dim, overlap, scale))))#def make_spk(W, w, overlap, scale):
+
+
+        xywh_list = []
+        # crops creation
+        for spk in spk_img:
+            scale = spk[0]
+            spy = spk[1][0][0] # stride horizontal
+            spx = spk[1][1][0] # stride vertical
+            for kyi in range(0,spk[1][0][1]+1):
+                yi=spy*kyi
+                for kxi in range(0,spk[1][1][1]+1):
+                    xi=spx*kxi
+                    xywh = (int(xi),int(yi),ceil(dim*scale),ceil(dim*scale))
+                    xywh_list.append(xywh)
+        return xywh_list
+
+    def produce_crops(self, xywh=None, duplicate=False):
         if xywh is not None:
-            # TODO: produce crop with ImageMagick and a different path to avoid hurts
             path = path_crop(xywh, duplicate=duplicate)
-            os.system("convert '"+self.image_path+"' -crop "+xywh[2]+"x"+xywh[3]+"+"+xywh[1]+"+"+xywh[0]+" '"+path+"'")
+            command="convert '"+self.image_path+"' -crop "+str(xywh[2])+"x"+str(xywh[3])+"+"+str(xywh[1])+"+"+str(xywh[0])+" '"+path+"'"
+            print("Command :",command)
+            os.system(command)
+            print("done.")
             #x_sizexy_size+x_offset+y_offset
             #xywh (ligne colonne w h) xywh[2]
             return path
         else:
-            # TODO: produce alls crops with path_crop path
-            os.system("convert '"+self.image_path+"' -crop "+xywh[2]+"x"+xywh[3]+"+"+xywh[1]+"+"+xywh[0]+" '"+path+"'")
-
-            command = "convert '"+self.image_path+" '
-            for xywh in self.all_crops:
-                path = path_crop(xywh)
-                command+="\( -clone 0 -crop "+xywh[2]+"x"+xywh[3]+"+"+xywh[1]+"+"+xywh[0]+" +write '"+path+"' +delete \)"
+            command = "convert '"+self.image_path+"'"
+            for xywh in self.crops:
+                path = self.path_crop(xywh)
+                if not os.path.isfile(path):
+                    command+=" \( -clone 0 -crop "+str(xywh[2])+"x"+str(xywh[3])+"+"+str(xywh[1])+"+"+str(xywh[0])+" +write '"+path+"' +delete \)"
             command+=" null:"
-            print("Command:")
-            print(command)
-            os.system(command)
-            #
-            # convert /dds/work/workspace/alan_jpg_files/SAL1/Niveau\ 6/PANO_SAL1_BR_6201.jpg \
-            # \( -clone 0 -crop 1000x1000+0+0 +write /dds/work/workspace/alan_tmp_files/output_crops/crop0.jpg +delete \)
-            #  \( -clone 0 -crop 1000x1000+500+500 +write /dds/work/workspace/alan_tmp_files/output_crops/crop1.jpg +delete \)
-            #  \( -clone 0 -crop 1000x1000+1000+1000 +write /dds/work/workspace/alan_tmp_files/output_crops/crop2.jpg +delete \)
-            #  null:
+            if str(self.dim) not in command:
+                print("Command useless:",command)
+            else:
+                print("Command :",command)
+                print("Wait...")
+                os.system(command)
+                print("done.")
 
 
     def __len__(self):
@@ -642,15 +737,93 @@ class TestSequence(Sequence):
     def __getitem__(self, id):
         """ Load an image at the sample_index.
         """
-        path = self.path_crop(self.crops[id])
+        xywh = self.crops[id]
+        path = self.path_crop(xywh)
 
         if not os.path.isfile(path):
-            path = self.compute_crops(xywh, duplicate=True)
+            path = self.produce_crops(xywh, duplicate=True)
 
         crop = Image.open(path)
-        # TODO: check BGR or RGB format
-        return np.array(crop)
-        return np.array(pil_resize(load_crop(xywh,img_path),self.dim))
+        return id, xywh, np.array(crop)
+
+class prediction_saver:
+    def __init__(self, saving_folder):
+        self.saving_folder = saving_folder
+        self.keys =['filename','index','x1','y1','x2','y2','x3','y3','x4','y4','status','equipment','extra_equipment','score']
+        # exemple:        CAT_1_6002,14,2173,6612,2173,6534,2505,6534,2505,6612,done,1RCV356VN,
+        self.predictions = []
+        self.index = 0
+
+    def save(self):
+        return self.save_data_to_csv_files(
+            os.path.join(self.saving_folder,"test_results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv"),
+            self.predictions,self.keys)
+
+    def save_nms(self,nms_threshold = 0.01):
+        filenames = list(set([p['filename'] for p in self.predictions]))
+        kept_indexes = []
+        for filename in filenames:
+            boxes = []
+            scores = []
+            source_indexes = []
+            for id_p,p in enumerate(self.predictions):
+                if p['filename']==filename:
+                    source_indexes.append(id_p)
+                    boxes.append([p['y1'],p['x1'],p['y3'],p['x3']])
+                    scores.append(p['score'])
+            boxes=np.asarray(boxes)
+            scores=np.asarray(scores)
+            kept_indexes_image = utils.non_max_suppression(boxes,scores,nms_threshold)
+            for k in kept_indexes_image:
+                kept_indexes.append(source_indexes[k])
+
+        return self.save_data_to_csv_files(
+            os.path.join(self.saving_folder,"test_results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nms"+str(nms_threshold)+".csv"),
+            [self.predictions[i] for i in kept_indexes],self.keys)
+
+    def save_data_to_csv_files(self, path_csvfile, dict_list, keys):
+        try:
+            with open(path_csvfile, 'w') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=keys, delimiter=',',quoting=csv.QUOTE_NONE, extrasaction='ignore')
+                writer.writeheader()
+                for dict in dict_list:
+                    writer.writerow(dict)
+            print("Saved under: "+path_csvfile)
+            return path_csvfile
         except:
-            print("Error in sample_index", img_path, img_id, scale, xywh, has_vt)
-            raise
+            print("Saving did not work.")
+            return None
+
+    def add_instances(self, filename, xywh_crop, boxes, scores=None):
+        """
+
+        """
+        crop_xo, crop_yo, _, _ = xywh_crop
+        for i in range(boxes.shape[0]):
+
+            # Bounding box
+            if not np.any(boxes[i]):
+                # Skip this instance. Has no bbox. Likely lost in image cropping.
+                continue
+            # x1, y1, x2, y2 = boxes[i] #ref matplotlib dans crop
+            y1, x1, y2, x2 = boxes[i] #ref matplotlib dans crop
+            xywh = (crop_xo+x1, crop_yo+y1, y2 - y1, x2 - x1) #xywh_obj_dans_full_image
+            # obj
+            score = scores[i] if scores is not None else None
+
+
+            equipment = 'alan'
+            extra_equipment = ''
+
+            detection_dict = {'filename':filename,
+                              'index':self.index,
+                              'y1':int(round(xywh[0])), 'x1':int(round(xywh[1])),
+                              'y2':int(round(xywh[0])), 'x2':int(round(xywh[1]+xywh[2])),
+                              'y3':int(round(xywh[0]+xywh[3])),'x3':int(round(xywh[1]+xywh[2])),
+                              'y4':int(round(xywh[0]+xywh[3])),'x4':int(round(xywh[1])),
+                              'status':'done',
+                              'equipment':equipment,
+                              'extra_equipment':extra_equipment,
+                              'score':score}
+            self.index+=1
+            self.predictions.append(detection_dict)
