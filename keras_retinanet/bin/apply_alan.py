@@ -119,3 +119,4 @@ psaver.save_nms()
 
 # with open(saving_result_path, 'wb') as handle:
 #     pickle.dump(img_infos, handle, protocol = pickle.HIGHEST_PROTOCOL)
+ordered_data_sequence.stop()
