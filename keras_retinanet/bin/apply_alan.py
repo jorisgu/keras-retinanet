@@ -37,7 +37,8 @@ def label_to_name(label):
 
 
 
-
+image_to_test = "/dds/work/workspace/alan_jpg_files/SAL1/Niveau 6/PANO_SAL1_BR_6201.jpg"
+image_to_test = "/dds/work/workspace/alan_jpg_files/SAL1/Niveau 7/PANO_SAL1_BR_7003.jpg"
 
 print('Loading model, this may take a second...')
 # model_path = "/dds/work/workspace/alan_tmp_files/resnet50_alan_01_01aout_19h15_inference.h5"
@@ -54,7 +55,7 @@ max_detections = 100
 save_path = "/dds/work/workspace/alan_tmp_files/results_apply_alan"
 if save_path is not None:
     mkdir_p(save_path)
-data_sequence = TestSequence(image_path="/dds/work/workspace/alan_jpg_files/SAL1/Niveau 6/PANO_SAL1_BR_6201.jpg", folder_crops="/dds/work/workspace/alan_tmp_files/sequence_crops")
+data_sequence = TestSequence(image_path=image_to_test, folder_crops="/dds/work/workspace/alan_tmp_files/sequence_crops")
 psaver = prediction_saver(save_path)
 ordered_data_sequence = OrderedEnqueuer(data_sequence, use_multiprocessing=True)
 ordered_data_sequence.start(workers=4, max_queue_size=100)
