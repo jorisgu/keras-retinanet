@@ -113,8 +113,9 @@ for id, xywh, image in t:
         cv2.imwrite(os.path.join(save_path, '{}.jpg'.format(id)), image)
 
     # if len(indices)>0:
-psaver.add_instances(data_sequence.filename, xywh, image_boxes, image_scores)
+    psaver.add_instances(data_sequence.filename, xywh, image_boxes, image_scores)
 psaver.save()
+psaver.save_nms()
 
 # with open(saving_result_path, 'wb') as handle:
 #     pickle.dump(img_infos, handle, protocol = pickle.HIGHEST_PROTOCOL)

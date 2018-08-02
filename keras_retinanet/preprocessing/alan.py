@@ -773,7 +773,7 @@ class prediction_saver:
                     scores.append(p['score'])
             boxes=np.asarray(boxes)
             scores=np.asarray(scores)
-            kept_indexes_image = utils.non_max_suppression(boxes,scores,nms_threshold)
+            kept_indexes_image = non_max_suppression_fast_score(boxes, nms_threshold, scores)
             for k in kept_indexes_image:
                 kept_indexes.append(source_indexes[k])
 
