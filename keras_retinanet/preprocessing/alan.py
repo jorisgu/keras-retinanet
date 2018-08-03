@@ -962,9 +962,9 @@ class prediction_saver:
 
     def save_tagbrowser(self):
         if self.filename is not None:
-            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms_tagbrowser.csv")
         else:
-            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms_tagbrowser.csv")
         return self.save_data_to_csv_files(
             path_csvfile,
             self.predictions,self.keys_tagbrowser)
@@ -988,9 +988,9 @@ class prediction_saver:
                 kept_indexes.append(source_indexes[k])
 
         if self.filename is not None:
-            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nms"+slugify(str(nms_threshold))+".csv")
         else:
-            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nms"+slugify(str(nms_threshold))+".csv")
         return self.save_data_to_csv_files(
             path_csvfile,
             [self.predictions[i] for i in kept_indexes],self.keys)
@@ -1014,15 +1014,16 @@ class prediction_saver:
                 kept_indexes.append(source_indexes[k])
 
         if self.filename is not None:
-            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nms"+slugify(str(nms_threshold))+"_tagbrowser.csv")
         else:
-            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nms"+slugify(str(nms_threshold))+"_tagbrowser.csv")
         return self.save_data_to_csv_files(
             path_csvfile,
             [self.predictions[i] for i in kept_indexes],self.keys_tagbrowser)
 
     def save_data_to_csv_files(self, path_csvfile, dict_list, keys):
         try:
+            mkdir_p(os.path.dirname(path_csvfile))
             with open(path_csvfile, 'w') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=keys, delimiter=',',quoting=csv.QUOTE_NONE, extrasaction='ignore')
                 writer.writeheader()
