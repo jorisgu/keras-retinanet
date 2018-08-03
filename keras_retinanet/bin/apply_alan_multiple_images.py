@@ -168,7 +168,7 @@ psaver_all.save_tagbrowser()
 # ordered_data_sequence.stop()
 
 
-paths_csv_groundtruth = ["/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_5026.csv,
+paths_csv_groundtruth = ["/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_5026.csv",
 "/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_6201.csv",
 "/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_6300.csv",
 "/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_6516.csv",
