@@ -77,9 +77,9 @@ def get_tranche(filename):
 
 print('Loading model, this may take a second...')
 # model_path = "/dds/work/workspace/alan_tmp_files/resnet50_alan_01_01aout_19h15_inference.h5"
-# model_path =  "/dds/work/workspace/keras-retinanet/snapshots/alan_training_02_1eraout/resnet50_alan_13_inference.h5"
+model_path =  "/dds/work/workspace/keras-retinanet/snapshots/alan_training_02_1eraout/resnet50_alan_13_inference.h5"
 # model_path =  "/dds/work/workspace/keras-retinanet/snapshots/alan_training_02_1eraout/resnet50_alan_02_inference.h5"
-model_path = "/dds/work/workspace/keras-retinanet/snapshots/alan_training_02_1eraout/resnet50_alan_06_inference.h5"
+# model_path = "/dds/work/workspace/keras-retinanet/snapshots/alan_training_02_1eraout/resnet50_alan_06_inference.h5"
 model = models.load_model(model_path, backbone_name='resnet50')
 
 
@@ -87,9 +87,9 @@ score_threshold = 0.1
 max_detections = 100
 
 save_path = "/dds/work/workspace/alan_tmp_files/results_apply_alan/multiple_files"
-psaver_all = prediction_saver(save_path,"multiple_files")
+psaver_all = prediction_saver(save_path,"multiple_files_epoch13")
 
-for filename in tqdm(filenames_to_test, desc="files to test",ncols=len(filenames_to_test)):
+for filename in tqdm(filenames_to_test, desc="files to test",ncols=100, position=1):
     image_to_test = "/dds/work/workspace/alan_jpg_files/"+get_tranche(filename)+"/Niveau "+get_niveau(filename)+"/"+filename+".jpg"
     print(image_to_test,os.path.isfile(image_to_test))
 
@@ -151,9 +151,9 @@ for filename in tqdm(filenames_to_test, desc="files to test",ncols=len(filenames
 
         image_detections = np.concatenate([image_boxes, np.expand_dims(image_scores, axis=1), np.expand_dims(image_labels, axis=1)], axis=1)
         data_sequence.results[id]=image_detections
-        if save_path is not None and len(indices)>0:
-            draw_detections(image, image_boxes, image_scores, image_labels, label_to_name=label_to_name,score_threshold=0)
-            cv2.imwrite(os.path.join(save_path, '{}.jpg'.format(id)), image)
+        # if save_path is not None and len(indices)>0:
+        #     draw_detections(image, image_boxes, image_scores, image_labels, label_to_name=label_to_name,score_threshold=0)
+        #     cv2.imwrite(os.path.join(save_path, '{}.jpg'.format(id)), image)
 
         # if len(indices)>0:
         psaver.add_instances(data_sequence.filename, xywh, image_boxes, image_scores)

@@ -381,7 +381,7 @@ def bak_load_bbox_from_csv(bbox_csv_paths):
             bbox_dict.setdefault(row['filename'],[]).append(row)
     return bbox_dict
 
-def load_bbox_from_csv(bbox_csv_paths):
+def load_bbox_from_csv(bbox_csv_paths,score_threshold=0.5):
     bbox_dict = {}
     for bbox_path in bbox_csv_paths:
         bbox_csvfile = open(bbox_path, 'r')
@@ -398,6 +398,11 @@ def load_bbox_from_csv(bbox_csv_paths):
                 bbox_dict[filename][label]=[]
 
             if 'score' in bbox.keys():
+                if float(bbox['score'])<float(score_threshold):
+                    # print("Removing ",bbox['score'],"<",float(score_threshold))
+                    continue
+                # else:
+                    # print("Keeping ",bbox['score'],">=",float(score_threshold))
                 bbox_dict[filename][label].append((x1,y1,x2,y2,bbox['score']))
             else:
                 bbox_dict[filename][label].append((x1,y1,x2,y2))
@@ -461,7 +466,7 @@ def evaluate_csv(path_csv_detection, path_csv_groundtruth, iou_threshold=0.5, sc
     #     score = bbox['score']
     #     all_detections[bbox['filename']][label].append((x1,y1,x2,y2,score))
 
-    all_detections = load_bbox_from_csv(path_csv_detection)
+    all_detections = load_bbox_from_csv(path_csv_detection,score_threshold)
     all_annotations = load_bbox_from_csv(path_csv_groundtruth)
     num_classes = 1
     filenames = all_annotations.keys()
