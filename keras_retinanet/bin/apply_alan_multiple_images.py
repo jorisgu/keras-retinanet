@@ -69,7 +69,7 @@ def get_niveau(filename):
     return niveau
 def get_tranche(filename):
     if "PANO" in filename:
-        return filename.split('_')[1]+filename.split('_')[1]
+        return filename.split('_')[1]
     else:
         return filename.split('_')[0]+filename.split('_')[1]
 
