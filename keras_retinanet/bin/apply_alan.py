@@ -40,6 +40,20 @@ def label_to_name(label):
 image_to_test = "/dds/work/workspace/alan_jpg_files/SAL1/Niveau 6/PANO_SAL1_BR_6201.jpg"
 image_to_test = "/dds/work/workspace/alan_jpg_files/SAL1/Niveau 7/PANO_SAL1_BR_7003.jpg"
 
+images_to_test = ["CAT_1_9804",
+"CAT_1_9091",
+"CAT_1_8021",
+"CAT_1_8023",
+"CAT_1_9844",
+"CAT_1_7012",
+"CAT_1_7013",
+"CAT_1_7014",
+"CAT_1_9035",
+"CAT_1_11019",
+"CAT_1_9048",
+"CAT_1_10052",
+"CAT_1_9803"]
+
 print('Loading model, this may take a second...')
 # model_path = "/dds/work/workspace/alan_tmp_files/resnet50_alan_01_01aout_19h15_inference.h5"
 # model_path =  "/dds/work/workspace/keras-retinanet/snapshots/alan_training_02_1eraout/resnet50_alan_13_inference.h5"
