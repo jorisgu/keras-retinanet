@@ -1,6 +1,7 @@
 # git pull; CUDA_VISIBLE_DEVICES=1 python keras_retinanet/bin/train.py --freeze-backbone --no-evaluation --batch-size=1 --num-workers=12 --random-transform alan
 from .generator import Generator
 from keras.utils import Sequence, OrderedEnqueuer
+from ..utils.compute_overlap import compute_overlap
 import os
 from os import path as osp
 from PIL import Image, ImageDraw
@@ -72,7 +73,6 @@ def non_max_suppression_fast_score(boxes, overlapThresh, scores):
     # return only the bounding boxes that were picked using the
     # integer data type
     return pick #boxes[pick].astype("int")
-
 
 def change_tile(tile, new_width, new_height, memory_offset):
     tup = tile[0]
@@ -342,6 +342,199 @@ def slugify(value):
     value = str(re.sub('[^\w\s-]', '', value.decode("utf-8") ).strip().lower())
     value = str(re.sub('[-\s]+', '-', value))
     return value
+
+def _compute_ap(recall, precision):
+    """ Compute the average precision, given the recall and precision curves.
+
+    Code originally from https://github.com/rbgirshick/py-faster-rcnn.
+
+    # Arguments
+        recall:    The recall curve (list).
+        precision: The precision curve (list).
+    # Returns
+        The average precision as computed in py-faster-rcnn.
+    """
+    # correct AP calculation
+    # first append sentinel values at the end
+    mrec = np.concatenate(([0.], recall, [1.]))
+    mpre = np.concatenate(([0.], precision, [0.]))
+
+    # compute the precision envelope
+    for i in range(mpre.size - 1, 0, -1):
+        mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
+
+    # to calculate area under PR curve, look for points
+    # where X axis (recall) changes value
+    i = np.where(mrec[1:] != mrec[:-1])[0]
+
+    # and sum (\Delta recall) * prec
+    ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
+    return ap
+
+def bak_load_bbox_from_csv(bbox_csv_paths):
+    bbox_dict = {}
+    for bbox_path in bbox_csv_paths:
+        bbox_csvfile = open(bbox_path, 'r')
+        # with open(pathToGT, 'r') as csvfile:
+        bbox_reader = csv.DictReader(bbox_csvfile)#, delimiter=',')
+        for row in bbox_reader:
+            bbox_dict.setdefault(row['filename'],[]).append(row)
+    return bbox_dict
+
+def load_bbox_from_csv(bbox_csv_paths):
+    bbox_dict = {}
+    for bbox_path in bbox_csv_paths:
+        bbox_csvfile = open(bbox_path, 'r')
+        # with open(pathToGT, 'r') as csvfile:
+        bbox_reader = csv.DictReader(bbox_csvfile)#, delimiter=',')
+        for bbox in bbox_reader:
+            filename = bbox['filename']
+            label = 0
+            x1,y1,x2,y2 = convert_polygon_to_rectangle(((bbox['x1'],bbox['y1']),(bbox['x2'],bbox['y2']),(bbox['x3'],bbox['y3']),(bbox['x4'],bbox['y4'])))
+
+            if filename not in bbox_dict:
+                bbox_dict[filename]={}
+            if label not in bbox_dict[filename]:
+                bbox_dict[filename][label]=[]
+
+            if 'score' in bbox.keys():
+                bbox_dict[filename][label].append((x1,y1,x2,y2,bbox['score']))
+            else:
+                bbox_dict[filename][label].append((x1,y1,x2,y2))
+    return bbox_dict
+
+def convert_polygon_to_rectangle(points):
+    """points = [(x,y),(x,y),(x,y)...]"""
+    x1=points[0][0]
+    y1=points[0][1]
+    x2=points[0][0]
+    y2=points[0][1]
+    for point in points:
+        if point[0]<x1:
+            x1=point[0]
+        if point[0]>x2:
+            x2=point[0]
+        if point[1]<y1:
+            y1=point[1]
+        if point[1]>y2:
+            y2=point[1]
+    return (x1,y1,x2,y2)
+
+def evaluate_csv(path_csv_detection, path_csv_groundtruth, iou_threshold=0.5, score_threshold=0.05, debug = False):
+    """ Evaluate a a csv file based on another csv file.
+    """
+    # num_classes = 1
+    # gather all detections and annotations
+    # bbox_detections     = load_bbox_from_csv(path_csv_detection)
+    # bbox_annotations    = load_bbox_from_csv(path_csv_groundtruth)
+
+
+
+    # filenames = bbox_annotations.keys() #set([bbox['filename'] for bbox in bbox_annotations])
+
+    #
+    #
+    # all_annotations = {}
+    # for bbox in bbox_annotations:
+    #     if 'status' in bbox:
+    #         if not bbox['status']=='done':
+    #             continue
+    #     if bbox['filename'] not in all_annotations:
+    #         all_annotations[bbox['filename']]={}
+    #     label = 0 #to infere from source if not only one label !
+    #     if label not in all_annotations[bbox['filename']]:
+    #         all_annotations[bbox['filename']][label]=[]
+    #
+    #     x1,y1,x2,y2 = convert_polygon_to_rectangle((bbox['x1'],bbox['y1']),(bbox['x2'],bbox['y2']),(bbox['x3'],bbox['y3']),(bbox['x4'],bbox['y4']))
+    #     all_annotations[bbox['filename']][label].append((x1,y1,x2,y2))
+    #
+    # all_detections = {}
+    # for filename in bbox_detections:
+    #     if filename not in all_detections:
+    #         all_detections[filename]={}
+    #         # all_detections.setdefault(filename,[])
+    #     label = 0 #to infere from source if not only one label !
+    #     if label not in all_detections[bbox['filename']]:
+    #         all_detections[bbox['filename']][label]=[]
+    #
+    #     x1,y1,x2,y2 = convert_polygon_to_rectangle((bbox['x1'],bbox['y1']),(bbox['x2'],bbox['y2']),(bbox['x3'],bbox['y3']),(bbox['x4'],bbox['y4']))
+    #     score = bbox['score']
+    #     all_detections[bbox['filename']][label].append((x1,y1,x2,y2,score))
+
+    all_detections = load_bbox_from_csv(path_csv_detection)
+    all_annotations = load_bbox_from_csv(path_csv_groundtruth)
+    num_classes = 1
+    filenames = all_annotations.keys()
+
+    average_precisions = {}
+    results = {}
+    # process detections and annotations
+    for label in range(num_classes):
+        false_positives = np.zeros((0,))
+        true_positives  = np.zeros((0,))
+        scores          = np.zeros((0,))
+        num_annotations = 0.0
+
+        for filename in filenames:
+            if filename not in all_detections:
+                detections = np.array([])
+            else:
+                detections           = np.array(all_detections[filename][label],dtype=np.double)
+            annotations          = np.array(all_annotations[filename][label],dtype=np.double)
+            num_annotations     += annotations.shape[0]
+            detected_annotations = []
+
+            for d in detections:
+                scores = np.append(scores, d[4])
+
+                if annotations.shape[0] == 0:
+                    false_positives = np.append(false_positives, 1)
+                    true_positives  = np.append(true_positives, 0)
+                    continue
+
+                overlaps            = compute_overlap(np.expand_dims(d, axis=0), annotations)
+                assigned_annotation = np.argmax(overlaps, axis=1)
+                max_overlap         = overlaps[0, assigned_annotation]
+
+                if max_overlap >= iou_threshold and assigned_annotation not in detected_annotations:
+                    false_positives = np.append(false_positives, 0)
+                    true_positives  = np.append(true_positives, 1)
+                    detected_annotations.append(assigned_annotation)
+                else:
+                    false_positives = np.append(false_positives, 1)
+                    true_positives  = np.append(true_positives, 0)
+
+        # no annotations -> AP for this class is 0 (is this correct?)
+        if num_annotations == 0:
+            average_precisions[label] = 0, 0
+            continue
+
+        # sort by score
+        indices         = np.argsort(-scores)
+        false_positives = false_positives[indices]
+        true_positives  = true_positives[indices]
+
+        jg_fp = np.sum(false_positives)
+        jg_tp = np.sum(true_positives)
+
+        # compute false positives and true positives
+        false_positives = np.cumsum(false_positives)
+        true_positives  = np.cumsum(true_positives)
+
+
+
+        # compute recall and precision
+        recall    = true_positives / num_annotations
+        precision = true_positives / np.maximum(true_positives + false_positives, np.finfo(np.float64).eps)
+
+        jg_recall = jg_tp / num_annotations
+        jg_precision = jg_tp / np.maximum(jg_tp + jg_fp, np.finfo(np.float64).eps)
+        # compute average precision
+        average_precision  = _compute_ap(recall, precision)
+        results[label] = average_precision, jg_precision, jg_recall, num_annotations, jg_tp+jg_fp, jg_tp, jg_fp,
+        if debug:
+            print("ap",average_precision," p:",jg_precision," r:",jg_recall," numD:",jg_tp+jg_fp)
+    return results
 
 def make_img_infos(saving_folder = "",
                     folders = [],
@@ -709,7 +902,7 @@ class TestSequence(Sequence):
         if xywh is not None:
             path = path_crop(xywh, duplicate=duplicate)
             command="convert '"+self.image_path+"' -crop "+str(xywh[2])+"x"+str(xywh[3])+"+"+str(xywh[1])+"+"+str(xywh[0])+" '"+path+"'"
-            print("Command :",command)
+            # print("Command :",command)
             os.system(command)
             print("done.")
             #x_sizexy_size+x_offset+y_offset
@@ -723,9 +916,10 @@ class TestSequence(Sequence):
                     command+=" \( -clone 0 -crop "+str(xywh[2])+"x"+str(xywh[3])+"+"+str(xywh[1])+"+"+str(xywh[0])+" +write '"+path+"' +delete \)"
             command+=" null:"
             if str(self.dim) not in command:
-                print("Command useless:",command)
+                pass
+                # print("Command useless:",command)
             else:
-                print("Command :",command)
+                # print("Command :",command)
                 print("Wait...")
                 os.system(command)
                 print("done.")
@@ -747,17 +941,33 @@ class TestSequence(Sequence):
         return id, xywh, np.array(crop)
 
 class prediction_saver:
-    def __init__(self, saving_folder):
+    def __init__(self, saving_folder, filename=None):
         self.saving_folder = saving_folder
+        self.filename = filename
         self.keys =['filename','index','x1','y1','x2','y2','x3','y3','x4','y4','status','equipment','extra_equipment','score']
+        self.keys_tagbrowser =['filename','index','x1','y1','x2','y2','x3','y3','x4','y4']
         # exemple:        CAT_1_6002,14,2173,6612,2173,6534,2505,6534,2505,6612,done,1RCV356VN,
         self.predictions = []
         self.index = 0
 
     def save(self):
+        if self.filename is not None:
+            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+        else:
+            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+
         return self.save_data_to_csv_files(
-            os.path.join(self.saving_folder,"test_results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv"),
-            self.predictions,self.keys)
+            path_csvfile,
+            self.predictions, self.keys)
+
+    def save_tagbrowser(self):
+        if self.filename is not None:
+            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+        else:
+            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+        return self.save_data_to_csv_files(
+            path_csvfile,
+            self.predictions,self.keys_tagbrowser)
 
     def save_nms(self,nms_threshold = 0.01):
         filenames = list(set([p['filename'] for p in self.predictions]))
@@ -777,9 +987,39 @@ class prediction_saver:
             for k in kept_indexes_image:
                 kept_indexes.append(source_indexes[k])
 
+        if self.filename is not None:
+            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+        else:
+            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
         return self.save_data_to_csv_files(
-            os.path.join(self.saving_folder,"test_results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nms"+str(nms_threshold)+".csv"),
+            path_csvfile,
             [self.predictions[i] for i in kept_indexes],self.keys)
+
+    def save_nms_tagbrowser(self, nms_threshold = 0.01):
+        filenames = list(set([p['filename'] for p in self.predictions]))
+        kept_indexes = []
+        for filename in filenames:
+            boxes = []
+            scores = []
+            source_indexes = []
+            for id_p,p in enumerate(self.predictions):
+                if p['filename']==filename:
+                    source_indexes.append(id_p)
+                    boxes.append([p['y1'],p['x1'],p['y3'],p['x3']])
+                    scores.append(p['score'])
+            boxes=np.asarray(boxes)
+            scores=np.asarray(scores)
+            kept_indexes_image = non_max_suppression_fast_score(boxes, nms_threshold, scores)
+            for k in kept_indexes_image:
+                kept_indexes.append(source_indexes[k])
+
+        if self.filename is not None:
+            path_csvfile = os.path.join(self.saving_folder,"results_"+self.filename+"_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+        else:
+            path_csvfile = os.path.join(self.saving_folder,"results_"+time.strftime("%Y_%m_%d-%Hh%Mmn%Ss")+"_nonms.csv")
+        return self.save_data_to_csv_files(
+            path_csvfile,
+            [self.predictions[i] for i in kept_indexes],self.keys_tagbrowser)
 
     def save_data_to_csv_files(self, path_csvfile, dict_list, keys):
         try:

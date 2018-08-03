@@ -15,7 +15,7 @@ def get_session():
     config.gpu_options.allow_growth = True
     return tf.Session(config=config)
 
-from keras_retinanet.preprocessing.alan import TestSequence, mkdir_p, prediction_saver, non_max_suppression_fast_score
+from keras_retinanet.preprocessing.alan import TestSequence, mkdir_p, prediction_saver, non_max_suppression_fast_score, evaluate_csv
 from keras_retinanet.utils.visualization import draw_detections
 from keras.utils import Sequence, OrderedEnqueuer
 from tqdm import tqdm
@@ -25,34 +25,38 @@ import os
 
 import cv2
 
-
-
-
-
 def label_to_name(label):
     if label==0:
         return "etiquette"
     else:
         return str(label)
 
+# # hard examples for Albert V1:
+# filenames_to_test = ["CAT_1_9804",
+# "CAT_1_9091",
+# "CAT_1_8021",
+# "CAT_1_8023",
+# "CAT_1_9844",
+# "CAT_1_7012",
+# "CAT_1_7013",
+# "CAT_1_7014",
+# "CAT_1_9035",
+# "CAT_1_11019",
+# "CAT_1_9048",
+# "CAT_1_10052",
+# "CAT_1_9803"]
 
-
-image_to_test = "/dds/work/workspace/alan_jpg_files/SAL1/Niveau 6/PANO_SAL1_BR_6201.jpg"
-image_to_test = "/dds/work/workspace/alan_jpg_files/SAL1/Niveau 7/PANO_SAL1_BR_7003.jpg"
-
-filenames_to_test = ["CAT_1_9804",
-"CAT_1_9091",
-"CAT_1_8021",
-"CAT_1_8023",
-"CAT_1_9844",
-"CAT_1_7012",
-"CAT_1_7013",
-"CAT_1_7014",
-"CAT_1_9035",
-"CAT_1_11019",
-"CAT_1_9048",
-"CAT_1_10052",
-"CAT_1_9803"]
+# SAL1 with available and checked groundtruth:
+filenames_to_test = ["PANO_SAL1_BR_5026",
+"PANO_SAL1_BR_6201",
+"PANO_SAL1_BR_6300",
+"PANO_SAL1_BR_6516",
+"PANO_SAL1_BR_7003",
+"PANO_SAL1_BR_7004",
+"PANO_SAL1_BR_7206",
+"PANO_SAL1_BR_8008",
+"PANO_SAL1_BR_8022",
+"PANO_SAL1_BR_9023",]
 
 def get_niveau(filename):
     num = filename.split('_')[-1]
@@ -79,6 +83,7 @@ model = models.load_model(model_path, backbone_name='resnet50')
 score_threshold = 0.1
 max_detections = 100
 
+psaver_all = prediction_saver(save_path,"multiple_files")
 
 for filename in tqdm(filenames_to_test, desc="files to test",ncols=len(filenames_to_test)):
     image_to_test = "/dds/work/workspace/alan_jpg_files/"+get_tranche(filename)+"/Niveau "+get_niveau(filename)+"/"+filename+".jpg"
@@ -89,7 +94,7 @@ for filename in tqdm(filenames_to_test, desc="files to test",ncols=len(filenames
     if save_path is not None:
         mkdir_p(save_path)
     data_sequence = TestSequence(image_path=image_to_test, folder_crops="/dds/work/workspace/alan_tmp_files/sequence_crops")
-    psaver = prediction_saver(save_path)
+    psaver = prediction_saver(save_path,filename)
     ordered_data_sequence = OrderedEnqueuer(data_sequence, use_multiprocessing=True)
     ordered_data_sequence.start(workers=4, max_queue_size=100)
     datas = ordered_data_sequence.get()
@@ -148,9 +153,31 @@ for filename in tqdm(filenames_to_test, desc="files to test",ncols=len(filenames
 
         # if len(indices)>0:
         psaver.add_instances(data_sequence.filename, xywh, image_boxes, image_scores)
+        psaver_all.add_instances(data_sequence.filename, xywh, image_boxes, image_scores)
     psaver.save()
     psaver.save_nms()
+    psaver.save_tagbrowser()
+    psaver.save_nms_tagbrowser()
+psaver_all.save()
+csv_pred_all = psaver_all.save_nms()
+psaver_all.save_nms_tagbrowser()
+psaver_all.save_tagbrowser()
 
 # with open(saving_result_path, 'wb') as handle:
 #     pickle.dump(img_infos, handle, protocol = pickle.HIGHEST_PROTOCOL)
 # ordered_data_sequence.stop()
+
+
+paths_csv_groundtruth = ["/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_5026.csv
+"/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_6201.csv",
+"/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_6300.csv",
+"/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_6516.csv",
+"/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_7003.csv",
+"/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_7004.csv",
+"/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_7206.csv",
+"/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_8008.csv",
+"/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_8022.csv",
+"/dds/work/workspace/alan_jpg_files/SAL1_eval/SAL1BR_groundtruth-PANO_SAL1_BR_9023.csv",]
+
+paths_csv_detection = [csv_pred_all]
+evaluate_csv(paths_csv_detection, paths_csv_groundtruth, iou_threshold=0.0005, score_threshold=score_threshold, debug = True)

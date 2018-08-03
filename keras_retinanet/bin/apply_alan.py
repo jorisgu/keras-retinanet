@@ -131,6 +131,8 @@ for id, xywh, image in t:
     psaver.add_instances(data_sequence.filename, xywh, image_boxes, image_scores)
 psaver.save()
 psaver.save_nms()
+psaver.save_tagbrowser()
+psaver.save_nms_tagbrowser()
 
 # with open(saving_result_path, 'wb') as handle:
 #     pickle.dump(img_infos, handle, protocol = pickle.HIGHEST_PROTOCOL)
