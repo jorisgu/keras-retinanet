@@ -83,6 +83,7 @@ model = models.load_model(model_path, backbone_name='resnet50')
 score_threshold = 0.1
 max_detections = 100
 
+save_path = "/dds/work/workspace/alan_tmp_files/results_apply_alan/multiple_files"
 psaver_all = prediction_saver(save_path,"multiple_files")
 
 for filename in tqdm(filenames_to_test, desc="files to test",ncols=len(filenames_to_test)):
