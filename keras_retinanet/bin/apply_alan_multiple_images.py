@@ -91,7 +91,7 @@ psaver_all = prediction_saver(save_path,"multiple_files_epoch13")
 
 for filename in tqdm(filenames_to_test, desc="files to test",ncols=100, position=1):
     image_to_test = "/dds/work/workspace/alan_jpg_files/"+get_tranche(filename)+"/Niveau "+get_niveau(filename)+"/"+filename+".jpg"
-    print(image_to_test,os.path.isfile(image_to_test))
+    # print(image_to_test,os.path.isfile(image_to_test))
 
 
     save_path = "/dds/work/workspace/alan_tmp_files/results_apply_alan/"+filename
